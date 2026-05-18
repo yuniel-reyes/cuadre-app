@@ -1,47 +1,46 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { PowerSyncContext } from '@powersync/react'
-import { useQuery } from '@powersync/react'
-import { useAuthStore } from './store/authStore'
-import { db, connectPowerSync, disconnectPowerSync } from './lib/powersync'
+import { useAuthStore, DEMO_MODE } from './store/authStore'
+import { db } from './lib/powersync'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import OwnerDashboard from './pages/OwnerDashboard'
 import DependienteDashboard from './pages/DependienteDashboard'
-import OnboardingWizard from './pages/OnboardingWizard'
+import type { UserRole } from './types'
 
-function OnboardingGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore()
-  const [dismissed, setDismissed] = useState(false)
+const ROLE_LABELS: Record<UserRole, string> = {
+  owner:       'Dueño',
+  supervisor:  'Supervisor',
+  dependiente: 'Dependiente',
+}
 
-  const { data: rates = [], isLoading } = useQuery<{ id: string }>(
-    `SELECT id FROM exchange_rates WHERE business_id = ? LIMIT 1`,
-    [user?.business_id]
+function DemoRoleSwitcher() {
+  const { user, setDemoRole } = useAuthStore()
+  if (!DEMO_MODE || !user) return null
+
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-ink/90 backdrop-blur rounded-full px-3 py-1.5 shadow-lg">
+      <span className="text-xs text-ink/40 font-mono mr-1 select-none">demo</span>
+      {(['owner', 'supervisor', 'dependiente'] as UserRole[]).map((role) => (
+        <button
+          key={role}
+          onClick={() => setDemoRole(role)}
+          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            user.role === role
+              ? 'bg-terracotta text-white'
+              : 'text-cream/70 hover:text-cream hover:bg-white/10'
+          }`}
+        >
+          {ROLE_LABELS[role]}
+        </button>
+      ))}
+    </div>
   )
-
-  const showOnboarding =
-    !dismissed &&
-    !isLoading &&
-    user?.role === 'owner' &&
-    rates.length === 0
-
-  if (showOnboarding) {
-    return <OnboardingWizard onComplete={() => setDismissed(true)} />
-  }
-
-  return <>{children}</>
 }
 
 function AppRoutes() {
   const { user, initialized } = useAuthStore()
-
-  useEffect(() => {
-    if (user) {
-      connectPowerSync()
-    } else {
-      disconnectPowerSync()
-    }
-  }, [user])
 
   if (!initialized) {
     return (
@@ -51,29 +50,32 @@ function AppRoutes() {
     )
   }
 
-  const Dashboard = user
-    ? (user.role === 'owner' || user.role === 'supervisor' ? <OwnerDashboard /> : <DependienteDashboard />)
-    : null
+  const Dashboard = user?.role === 'dependiente'
+    ? <DependienteDashboard />
+    : <OwnerDashboard />
 
   return (
-    <Routes>
-      {/* Public */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
-
-      {/* Protected */}
-      <Route
-        path="/app"
-        element={
-          user
-            ? <OnboardingGate>{Dashboard}</OnboardingGate>
-            : <Navigate to="/login" replace />
-        }
-      />
-
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        {DEMO_MODE ? (
+          <>
+            <Route path="*" element={<Navigate to="/app" replace />} />
+            <Route path="/app" element={Dashboard} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
+            <Route
+              path="/app"
+              element={user ? Dashboard : <Navigate to="/login" replace />}
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        )}
+      </Routes>
+      <DemoRoleSwitcher />
+    </>
   )
 }
 

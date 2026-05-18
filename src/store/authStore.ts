@@ -1,6 +1,42 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
-import type { AppUser, Business } from '../types'
+import type { AppUser, Business, UserRole } from '../types'
+
+// ─── Demo mode ───────────────────────────────────────────────────────────────
+export const DEMO_MODE = true
+
+const DEMO_BUSINESS: Business = {
+  id: 'demo-business',
+  name: 'Cafetería El Rincón',
+  type: 'cafeteria',
+  owner_id: 'demo-owner',
+  created_at: new Date().toISOString(),
+}
+
+const DEMO_USERS: Record<UserRole, AppUser> = {
+  owner: {
+    id: 'demo-owner',
+    business_id: 'demo-business',
+    name: 'Carlos Méndez',
+    role: 'owner',
+    active: true,
+  },
+  supervisor: {
+    id: 'demo-supervisor',
+    business_id: 'demo-business',
+    name: 'María García',
+    role: 'supervisor',
+    active: true,
+  },
+  dependiente: {
+    id: 'demo-dependiente',
+    business_id: 'demo-business',
+    name: 'Luis Torres',
+    role: 'dependiente',
+    active: true,
+  },
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface AuthState {
   user: AppUser | null
@@ -10,6 +46,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   initialize: () => Promise<void>
+  setDemoRole: (role: UserRole) => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -19,6 +56,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialized: false,
 
   initialize: async () => {
+    if (DEMO_MODE) {
+      set({
+        user: DEMO_USERS.owner,
+        business: DEMO_BUSINESS,
+        initialized: true,
+      })
+      return
+    }
+
     const { data: { session } } = await supabase.auth.getSession()
 
     if (session?.user) {
@@ -59,6 +105,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     })
   },
 
+  setDemoRole: (role) => {
+    set({ user: DEMO_USERS[role], business: DEMO_BUSINESS })
+  },
+
   signIn: async (email, password) => {
     set({ loading: true })
     const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -67,6 +117,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async () => {
+    if (DEMO_MODE) {
+      set({ user: DEMO_USERS.owner, business: DEMO_BUSINESS })
+      return
+    }
     await supabase.auth.signOut()
     set({ user: null, business: null })
   },
