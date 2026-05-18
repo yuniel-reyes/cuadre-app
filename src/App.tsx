@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { PowerSyncContext } from '@powersync/react'
 import { useAuthStore, DEMO_MODE } from './store/authStore'
 import { db } from './lib/powersync'
+import { seedDemoData } from './lib/demoSeed'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import OwnerDashboard from './pages/OwnerDashboard'
@@ -37,6 +38,13 @@ function DemoRoleSwitcher() {
       ))}
     </div>
   )
+}
+
+function DemoDataSeeder() {
+  useEffect(() => {
+    if (DEMO_MODE) seedDemoData()
+  }, [])
+  return null
 }
 
 function AppRoutes() {
@@ -88,6 +96,7 @@ export default function App() {
 
   return (
     <PowerSyncContext.Provider value={db}>
+      <DemoDataSeeder />
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
