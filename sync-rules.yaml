@@ -1,0 +1,57 @@
+config:
+  edition: 3
+
+streams:
+  user_business:
+    auto_subscribe: true
+    queries:
+
+      - |
+        SELECT b.*
+        FROM businesses b
+        JOIN users u ON u.business_id = b.id
+        WHERE u.id = auth.user_id()
+
+      - |
+        SELECT u2.*
+        FROM users u1
+        JOIN users u2 ON u2.business_id = u1.business_id
+        WHERE u1.id = auth.user_id()
+
+      - |
+        SELECT er.*
+        FROM users u
+        JOIN exchange_rates er ON er.business_id = u.business_id
+        WHERE u.id = auth.user_id()
+
+      - |
+        SELECT p.*
+        FROM users u
+        JOIN products p ON p.business_id = u.business_id
+        WHERE u.id = auth.user_id()
+
+      - |
+        SELECT s.*
+        FROM users u
+        JOIN shifts s ON s.business_id = u.business_id
+        WHERE u.id = auth.user_id()
+
+      - |
+        SELECT ci.*
+        FROM users u
+        JOIN shifts s ON s.business_id = u.business_id
+        JOIN cuadre_items ci ON ci.shift_id = s.id
+        WHERE u.id = auth.user_id()
+
+      - |
+        SELECT sale.*
+        FROM users u
+        JOIN sales sale ON sale.business_id = u.business_id
+        WHERE u.id = auth.user_id()
+
+      - |
+        SELECT si.*
+        FROM users u
+        JOIN sales sale ON sale.business_id = u.business_id
+        JOIN sale_items si ON si.sale_id = sale.id
+        WHERE u.id = auth.user_id()

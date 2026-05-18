@@ -7,6 +7,11 @@ export const db = new PowerSyncDatabase({
   database: { dbFilename: 'cuadre.db' },
 })
 
+// Temporary debug: expose db to window for console inspection
+if (typeof window !== 'undefined') {
+  (window as any).__psdb = db
+}
+
 export const connector = new SupabaseConnector()
 
 export async function connectPowerSync() {
