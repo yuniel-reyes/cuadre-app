@@ -107,7 +107,7 @@ export default function CuadreTable({ shiftId, status, date }: Props) {
 
   const updateField = (
     itemId: string,
-    field: keyof Pick<RowState, 'inicio' | 'entradas' | 'salidas' | 'final' | 'efectivoDeclarado'>,
+    field: keyof Pick<RowState, 'entradas' | 'salidas' | 'final' | 'efectivoDeclarado'>,
     value: number
   ) => {
     setRows((prev) => prev.map((r) => r.itemId === itemId ? { ...r, [field]: value } : r))
@@ -204,13 +204,8 @@ export default function CuadreTable({ shiftId, status, date }: Props) {
                     <div className="text-xs text-muted-foreground font-mono">{row.priceAtShift} {row.currency}</div>
                   </td>
 
-                  <td className="px-1 py-1 text-center">
-                    <NumInput
-                      value={row.inicio}
-                      disabled={!isEditable}
-                      onChange={(v) => updateField(row.itemId, 'inicio', v)}
-                      onBlur={() => handleBlur(row.itemId)}
-                    />
+                  <td className="px-2 py-2 text-center text-sm text-ink/60 font-medium font-mono w-14">
+                    {row.inicio}
                   </td>
 
                   <td className="px-1 py-1 text-center">

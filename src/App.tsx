@@ -8,6 +8,7 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import OwnerDashboard from './pages/OwnerDashboard'
 import DependienteDashboard from './pages/DependienteDashboard'
+import BusinessPicker from './components/BusinessPicker'
 import type { UserRole } from './types'
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -48,7 +49,7 @@ function DemoDataSeeder() {
 }
 
 function AppRoutes() {
-  const { user, initialized } = useAuthStore()
+  const { user, business, businesses, initialized } = useAuthStore()
 
   if (!initialized) {
     return (
@@ -56,6 +57,11 @@ function AppRoutes() {
         <p className="text-muted-foreground text-sm font-mono">Cargando...</p>
       </div>
     )
+  }
+
+  // Real mode: user logged in but no active business selected (multi-business picker)
+  if (!DEMO_MODE && user && !business && businesses.length > 1) {
+    return <BusinessPicker />
   }
 
   const Dashboard = user?.role === 'dependiente'

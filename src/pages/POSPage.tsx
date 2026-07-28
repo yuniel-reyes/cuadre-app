@@ -3,6 +3,7 @@ import { useQuery } from '@powersync/react'
 import { useAuthStore } from '../store/authStore'
 import QuantityModal, { type CartItem } from '../components/QuantityModal'
 import PaymentModal from '../components/PaymentModal'
+import BarcodeScanner from '../components/BarcodeScanner'
 import type { Product, Shift } from '../types'
 
 export default function POSPage() {
@@ -12,19 +13,24 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showPayment, setShowPayment] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
+  const [barcodeNotFound, setBarcodeNotFound] = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
-
-  const { data: products = [] } = useQuery<Product>(
-    `SELECT * FROM products WHERE business_id = ? AND active = 1 ORDER BY category, name`,
-    [user?.business_id]
-  )
 
   const { data: activeShifts = [] } = useQuery<Shift>(
     `SELECT * FROM shifts WHERE dependiente_id = ? AND date = ? AND status = 'open' LIMIT 1`,
     [user?.id, today]
   )
   const activeShiftId = activeShifts[0]?.id ?? null
+
+  const { data: products = [] } = useQuery<Product>(
+    `SELECT p.* FROM products p
+     INNER JOIN cuadre_items ci ON ci.product_id = p.id
+     WHERE ci.shift_id = ? AND p.active = 1
+     ORDER BY p.category, p.name`,
+    [activeShiftId ?? '']
+  )
 
   const categories = [...new Set(products.map((p) => p.category).filter(Boolean))]
 
@@ -56,12 +62,26 @@ export default function POSPage() {
 
   const clearCart = () => setCart([])
 
+  const handleBarcodeScan = (code: string) => {
+    setShowScanner(false)
+    const match = products.find((p) => p.barcode === code)
+    if (match) {
+      setSelectedProduct(match)
+    } else {
+      setBarcodeNotFound(true)
+      setTimeout(() => setBarcodeNotFound(false), 2500)
+    }
+  }
+
+  const cartQuantityFor = (productId: string) =>
+    cart.filter((c) => c.product.id === productId).reduce((s, c) => s + c.quantity, 0)
+
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0)
 
   return (
     <div className="flex flex-col h-[calc(100svh-112px)]">
-      {/* Search + filter */}
-      <div className="flex gap-2 mb-3">
+      {/* Search + filter + scan */}
+      <div className="flex gap-2 mb-1">
         <input
           type="search"
           placeholder="Buscar..."
@@ -69,6 +89,16 @@ export default function POSPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 px-3 py-2 border border-border rounded-lg text-sm bg-cream text-ink focus:outline-none focus:ring-2 focus:ring-terracotta placeholder:text-ink/30"
         />
+        <button
+          onClick={() => { setBarcodeNotFound(false); setShowScanner(true) }}
+          className="px-3 py-2 border border-border rounded-lg bg-cream hover:bg-sand transition-colors"
+          title="Escanear código de barras"
+        >
+          <svg className="w-5 h-5 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75V16.5zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 18.75h.75v.75h-.75v-.75zM18.75 13.5h.75v.75h-.75v-.75zM18.75 18.75h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75V16.5z" />
+          </svg>
+        </button>
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
@@ -78,39 +108,53 @@ export default function POSPage() {
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
+      {barcodeNotFound && (
+        <p className="text-xs text-destructive mb-2 px-1">
+          Código no encontrado en los productos de este turno.
+        </p>
+      )}
 
       {/* Product grid */}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-8">No hay productos.</p>
+          <p className="text-center text-sm text-muted-foreground py-8">
+            {!activeShiftId ? 'Abre un turno para ver los productos.' : 'No hay productos en este turno.'}
+          </p>
         )}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-4">
           {filtered.map((product) => {
             const inCart = cart.find((c) => c.product.id === product.id)
+            const outOfStock = product.current_stock <= 0
             return (
               <button
                 key={product.id}
                 onClick={() => setSelectedProduct(product)}
-                className={`relative bg-card border rounded-xl p-3 text-left transition-colors hover:border-terracotta/50 active:bg-terracotta/5 ${
-                  inCart ? 'border-terracotta' : 'border-border'
-                }`}
+                className={`relative bg-card border rounded-xl p-3 text-left transition-colors ${
+                  outOfStock
+                    ? 'opacity-50 border-border'
+                    : 'hover:border-terracotta/50 active:bg-terracotta/5'
+                } ${inCart ? 'border-terracotta' : 'border-border'}`}
               >
                 {inCart && (
                   <span className="absolute top-2 right-2 w-5 h-5 bg-terracotta text-cream text-xs rounded-full flex items-center justify-center font-medium">
                     {inCart.quantity}
                   </span>
                 )}
-                {product.current_stock <= product.min_stock && product.min_stock > 0 && (
+                {!outOfStock && product.current_stock <= product.min_stock && product.min_stock > 0 && (
                   <span className="absolute top-2 left-2 w-2 h-2 bg-destructive rounded-full" />
                 )}
                 <p className="text-sm font-medium text-ink leading-tight line-clamp-2 pr-5">
                   {product.name}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">{product.category}</p>
-                <p className="text-sm font-bold text-terracotta mt-2">
-                  {product.sale_price.toFixed(2)}{' '}
-                  <span className="font-normal text-xs text-muted-foreground">{product.currency}</span>
-                </p>
+                {outOfStock ? (
+                  <p className="text-xs font-bold text-destructive mt-2 uppercase tracking-wide">Agotado</p>
+                ) : (
+                  <p className="text-sm font-bold text-terracotta mt-2">
+                    {product.sale_price.toFixed(2)}{' '}
+                    <span className="font-normal text-xs text-muted-foreground">{product.currency}</span>
+                  </p>
+                )}
               </button>
             )
           })}
@@ -153,9 +197,17 @@ export default function POSPage() {
         </div>
       )}
 
+      {showScanner && (
+        <BarcodeScanner
+          onDetect={handleBarcodeScan}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
       {selectedProduct && (
         <QuantityModal
           product={selectedProduct}
+          alreadyInCart={cartQuantityFor(selectedProduct.id)}
           onAdd={addToCart}
           onClose={() => setSelectedProduct(null)}
         />

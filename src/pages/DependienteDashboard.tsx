@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@powersync/react'
 import { useAuthStore } from '../store/authStore'
 import SyncStatusPill from '../components/SyncStatusPill'
+import BusinessSwitcher from '../components/BusinessSwitcher'
 import OpenShiftModal from '../components/OpenShiftModal'
 import CuadreTable from '../components/CuadreTable'
 import POSPage from './POSPage'
@@ -39,6 +40,7 @@ export default function DependienteDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <BusinessSwitcher />
           <SyncStatusPill />
           <button
             onClick={signOut}

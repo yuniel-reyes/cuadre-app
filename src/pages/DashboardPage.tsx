@@ -29,12 +29,14 @@ export default function DashboardPage() {
   const { user } = useAuthStore()
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: rates = [] } = useQuery<{ mlc_to_cup: number; usd_to_cup: number }>(
-    `SELECT mlc_to_cup, usd_to_cup FROM exchange_rates WHERE business_id = ? LIMIT 1`,
+  const { data: rates = [] } = useQuery<{ mlc_to_cup: number; usd_to_cup: number; updated_at: string }>(
+    `SELECT mlc_to_cup, usd_to_cup, updated_at FROM exchange_rates WHERE business_id = ? LIMIT 1`,
     [user?.business_id]
   )
   const mlcToCup = rates[0]?.mlc_to_cup ?? 1
   const usdToCup = rates[0]?.usd_to_cup ?? 1
+  const rateUpdatedDay = rates[0]?.updated_at?.split('T')[0] ?? null
+  const rateIsStale = rateUpdatedDay !== null && rateUpdatedDay !== today
 
   const { data: stats = [] } = useQuery<CurrencyStat>(
     `SELECT si.currency,
@@ -96,8 +98,18 @@ export default function DashboardPage() {
       </div>
 
       {/* Alerts */}
-      {(pendingCount > 0 || lowStockCount > 0) && (
+      {(rateIsStale || pendingCount > 0 || lowStockCount > 0) && (
         <div className="space-y-2">
+          {rateIsStale && (
+            <div className="bg-ember/10 border border-ember/30 rounded-xl px-4 py-2.5 flex items-center gap-3">
+              <svg className="w-4 h-4 text-ember shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <span className="text-sm text-ink/80 flex-1">
+                Tasa de cambio desactualizada — actualiza antes de vender
+              </span>
+            </div>
+          )}
           {pendingCount > 0 && (
             <div className="bg-ember/10 border border-ember/30 rounded-xl px-4 py-2.5 flex items-center justify-between">
               <span className="text-sm text-ink/80">

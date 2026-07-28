@@ -52,12 +52,42 @@ export default function ExchangeRatesPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const today = new Date().toISOString().split('T')[0]
+  const lastUpdatedDay = current?.updated_at?.split('T')[0] ?? null
+  const isStale = lastUpdatedDay !== today
+
   return (
-    <div className="p-4 max-w-sm">
-      <h2 className="font-display font-bold text-ink text-lg mb-1">Tasas de cambio</h2>
-      <p className="text-sm text-muted-foreground mb-6">
-        Todos los reportes se convierten a CUP usando estas tasas.
-      </p>
+    <div className="max-w-sm space-y-4">
+      <div>
+        <h2 className="font-display font-bold text-ink text-lg mb-1">Tasas de cambio</h2>
+        <p className="text-sm text-muted-foreground">
+          Todos los reportes y cobros se convierten a CUP usando estas tasas.
+        </p>
+      </div>
+
+      {/* Staleness warning */}
+      {current && isStale && (
+        <div className="bg-ember/10 border border-ember/30 rounded-xl px-4 py-3 flex items-start gap-3">
+          <svg className="w-4 h-4 text-ember shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-ember">Tasa desactualizada</p>
+            <p className="text-xs text-ink/60 mt-0.5">
+              Última: {new Date(current.updated_at).toLocaleDateString('es-CU', { weekday: 'long', day: 'numeric', month: 'long' })}. Actualiza antes de abrir ventas.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {current && !isStale && (
+        <div className="bg-moss/10 border border-moss/30 rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <svg className="w-4 h-4 text-moss shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-sm text-moss font-medium">Tasa actualizada hoy</p>
+        </div>
+      )}
 
       <form onSubmit={handleSave} className="space-y-4">
         <div>
@@ -99,12 +129,12 @@ export default function ExchangeRatesPage() {
           disabled={saving}
           className="w-full bg-terracotta text-cream py-2.5 rounded-lg font-medium text-sm hover:bg-ember disabled:opacity-50 transition-colors"
         >
-          {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar tasas'}
+          {saving ? 'Guardando...' : saved ? 'Guardado ✓' : isStale ? 'Actualizar tasa de hoy →' : 'Guardar tasas'}
         </button>
       </form>
 
       {current && (
-        <p className="text-xs text-muted-foreground font-mono mt-4">
+        <p className="text-xs text-muted-foreground font-mono">
           Última actualización: {new Date(current.updated_at).toLocaleString('es-CU')}
         </p>
       )}

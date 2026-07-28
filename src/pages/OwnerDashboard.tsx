@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuthStore } from '../store/authStore'
 import SyncStatusPill from '../components/SyncStatusPill'
+import BusinessSwitcher from '../components/BusinessSwitcher'
 import DashboardPage from './DashboardPage'
 import ShiftsPage from './ShiftsPage'
 import POSPage from './POSPage'
@@ -8,8 +9,9 @@ import ProductsPage from './ProductsPage'
 import ReportsPage from './ReportsPage'
 import UserManagementPage from './UserManagementPage'
 import ExchangeRatesPage from './ExchangeRatesPage'
+import StockPage from './StockPage'
 
-type Tab = 'inicio' | 'turnos' | 'pos' | 'productos' | 'reportes' | 'usuarios' | 'tasas'
+type Tab = 'inicio' | 'turnos' | 'pos' | 'productos' | 'reportes' | 'usuarios' | 'tasas' | 'stock'
 
 const TAB_LABELS: Record<Tab, string> = {
   inicio:    'Inicio',
@@ -19,10 +21,11 @@ const TAB_LABELS: Record<Tab, string> = {
   reportes:  'Reportes',
   usuarios:  'Usuarios',
   tasas:     'Tasas',
+  stock:     'Stock',
 }
 
-const OWNER_TABS: Tab[]      = ['inicio', 'turnos', 'pos', 'productos', 'reportes', 'usuarios', 'tasas']
-const SUPERVISOR_TABS: Tab[] = ['inicio', 'turnos', 'pos', 'reportes']
+const OWNER_TABS: Tab[]      = ['inicio', 'turnos', 'pos', 'productos', 'stock', 'reportes', 'usuarios', 'tasas']
+const SUPERVISOR_TABS: Tab[] = ['inicio', 'turnos', 'pos', 'stock', 'reportes']
 
 export default function OwnerDashboard() {
   const { user, business, signOut } = useAuthStore()
@@ -33,11 +36,12 @@ export default function OwnerDashboard() {
   return (
     <div className="min-h-svh bg-cream">
       <header className="bg-card border-b border-border px-4 py-3 flex items-center justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="font-display font-bold text-ink truncate">{business?.name}</h1>
           <p className="text-xs text-muted-foreground capitalize font-mono">{business?.type}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <BusinessSwitcher />
           <SyncStatusPill />
           <span className="text-sm text-ink/60 hidden sm:block">{user?.name}</span>
           <button
@@ -73,6 +77,7 @@ export default function OwnerDashboard() {
         {tab === 'reportes'  && <ReportsPage />}
         {tab === 'usuarios'  && <UserManagementPage />}
         {tab === 'tasas'     && <ExchangeRatesPage />}
+        {tab === 'stock'     && <StockPage />}
       </main>
     </div>
   )

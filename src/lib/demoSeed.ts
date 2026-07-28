@@ -24,22 +24,40 @@ export async function seedDemoData() {
   const twoDaysAgo = d(2)
   const threeDaysAgo = d(3)
 
-  // ── Business ──────────────────────────────────────────────────────────────
+  // ── Businesses ────────────────────────────────────────────────────────────
   await exec(
     `INSERT INTO businesses (id, name, type, owner_id, created_at) VALUES (?, ?, ?, ?, ?)`,
     ['demo-business', 'Cafetería El Rincón', 'cafeteria', 'demo-owner', now]
   )
+  await exec(
+    `INSERT INTO businesses (id, name, type, owner_id, created_at) VALUES (?, ?, ?, ?, ?)`,
+    ['demo-business-2', 'Tienda La Esquina', 'tienda', 'demo-owner', now]
+  )
 
   // ── Users ─────────────────────────────────────────────────────────────────
   const users = [
-    ['demo-owner',       'Carlos Méndez',  'owner'],
-    ['demo-supervisor',  'María García',   'supervisor'],
-    ['demo-dependiente', 'Luis Torres',    'dependiente'],
+    ['demo-owner',       'Carlos Méndez'],
+    ['demo-supervisor',  'María García'],
+    ['demo-dependiente', 'Luis Torres'],
   ]
-  for (const [id, name, role] of users) {
+  for (const [id, name] of users) {
     await exec(
-      `INSERT INTO users (id, business_id, name, role, active) VALUES (?, ?, ?, ?, 1)`,
-      [id, 'demo-business', name, role]
+      `INSERT INTO users (id, name) VALUES (?, ?)`,
+      [id, name]
+    )
+  }
+
+  // ── User businesses (memberships) ─────────────────────────────────────────
+  const memberships = [
+    ['demo-ub-1', 'demo-owner',       'demo-business',   'owner'],
+    ['demo-ub-2', 'demo-supervisor',  'demo-business',   'supervisor'],
+    ['demo-ub-3', 'demo-dependiente', 'demo-business',   'dependiente'],
+    ['demo-ub-4', 'demo-owner',       'demo-business-2', 'owner'],
+  ]
+  for (const [id, user_id, business_id, role] of memberships) {
+    await exec(
+      `INSERT INTO user_businesses (id, user_id, business_id, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)`,
+      [id, user_id, business_id, role, now]
     )
   }
 

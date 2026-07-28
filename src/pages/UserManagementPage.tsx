@@ -11,6 +11,7 @@ interface UserRow {
   name: string
   role: UserRole
   active: number
+  ub_id: string  // user_businesses.id for updates
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -34,7 +35,11 @@ export default function UserManagementPage() {
   const [created, setCreated] = useState<{ name: string; email: string; password: string } | null>(null)
 
   const { data: users = [] } = useQuery<UserRow>(
-    `SELECT id, name, role, active FROM users WHERE business_id = ? ORDER BY role, name`,
+    `SELECT u.id, u.name, ub.role, ub.active, ub.id as ub_id
+     FROM users u
+     JOIN user_businesses ub ON ub.user_id = u.id
+     WHERE ub.business_id = ?
+     ORDER BY ub.role, u.name`,
     [user?.business_id]
   )
 
@@ -56,18 +61,29 @@ export default function UserManagementPage() {
       return
     }
 
-    const { error: insertError } = await supabase
+    // Insert user profile
+    const { error: userError } = await supabase
       .from('users')
+      .insert({ id: data.user.id, name: form.name })
+
+    if (userError) {
+      setError(userError.message)
+      setSaving(false)
+      return
+    }
+
+    // Insert membership
+    const { error: memberError } = await supabase
+      .from('user_businesses')
       .insert({
-        id: data.user.id,
+        user_id: data.user.id,
         business_id: user!.business_id,
-        name: form.name,
         role: form.role,
         active: true,
       })
 
-    if (insertError) {
-      setError(insertError.message)
+    if (memberError) {
+      setError(memberError.message)
       setSaving(false)
       return
     }
@@ -80,13 +96,13 @@ export default function UserManagementPage() {
 
   const toggleActive = async (u: UserRow) => {
     await db.execute(
-      `UPDATE users SET active = ? WHERE id = ?`,
-      [u.active ? 0 : 1, u.id]
+      `UPDATE user_businesses SET active = ? WHERE id = ?`,
+      [u.active ? 0 : 1, u.ub_id]
     )
   }
 
-  const handleChangeRole = async (id: string, role: UserRole) => {
-    await db.execute(`UPDATE users SET role = ? WHERE id = ?`, [role, id])
+  const handleChangeRole = async (u: UserRow, role: UserRole) => {
+    await db.execute(`UPDATE user_businesses SET role = ? WHERE id = ?`, [role, u.ub_id])
   }
 
   return (
@@ -113,10 +129,7 @@ export default function UserManagementPage() {
           <p className="text-xs text-moss/80">
             El usuario debe confirmar su email antes de poder entrar (si la confirmación está activa en Supabase).
           </p>
-          <button
-            onClick={() => setCreated(null)}
-            className="text-xs text-moss underline"
-          >
+          <button onClick={() => setCreated(null)} className="text-xs text-moss underline">
             Cerrar
           </button>
         </div>
@@ -149,7 +162,7 @@ export default function UserManagementPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <select
                   value={u.role}
-                  onChange={(e) => handleChangeRole(u.id, e.target.value as UserRole)}
+                  onChange={(e) => handleChangeRole(u, e.target.value as UserRole)}
                   className="text-xs border border-border rounded-lg px-2 py-1 bg-cream text-ink focus:outline-none"
                 >
                   <option value="dependiente">Dependiente</option>

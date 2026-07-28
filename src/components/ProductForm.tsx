@@ -35,6 +35,7 @@ export default function ProductForm({ product, onClose }: Props) {
     current_stock: product?.current_stock?.toString() ?? '0',
     min_stock: product?.min_stock?.toString() ?? '0',
     active: product?.active ?? true,
+    barcode: product?.barcode ?? '',
   })
   const [saving, setSaving] = useState(false)
 
@@ -56,7 +57,7 @@ export default function ProductForm({ product, onClose }: Props) {
         `UPDATE products SET
           name = ?, category = ?, unit = ?,
           sale_price = ?, cost_price = ?, currency = ?,
-          current_stock = ?, min_stock = ?, active = ?
+          current_stock = ?, min_stock = ?, active = ?, barcode = ?
          WHERE id = ?`,
         [
           form.name, form.category, form.unit,
@@ -64,14 +65,15 @@ export default function ProductForm({ product, onClose }: Props) {
           parseFloat(form.current_stock) || 0,
           parseFloat(form.min_stock) || 0,
           form.active ? 1 : 0,
+          form.barcode || null,
           product.id,
         ]
       )
     } else {
       await db.execute(
         `INSERT INTO products
-          (id, business_id, name, category, unit, sale_price, cost_price, currency, current_stock, min_stock, active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, business_id, name, category, unit, sale_price, cost_price, currency, current_stock, min_stock, active, barcode)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           crypto.randomUUID(), user.business_id,
           form.name, form.category, form.unit,
@@ -79,6 +81,7 @@ export default function ProductForm({ product, onClose }: Props) {
           parseFloat(form.current_stock) || 0,
           parseFloat(form.min_stock) || 0,
           1,
+          form.barcode || null,
         ]
       )
     }
@@ -119,6 +122,18 @@ export default function ProductForm({ product, onClose }: Props) {
               onChange={(e) => set('name', e.target.value)}
               className={inputCls}
               placeholder="Ej: Refresco cola 1L"
+            />
+          </div>
+
+          {/* Barcode */}
+          <div>
+            <label className={labelCls}>Código de barras</label>
+            <input
+              value={form.barcode}
+              onChange={(e) => set('barcode', e.target.value)}
+              className={inputCls}
+              placeholder="Ej: 7501055300057"
+              inputMode="numeric"
             />
           </div>
 

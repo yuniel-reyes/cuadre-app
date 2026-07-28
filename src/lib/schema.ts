@@ -12,10 +12,15 @@ const businesses = new Table({
 })
 
 const users = new Table({
-  business_id: column.text,
   name: column.text,
+})
+
+const user_businesses = new Table({
+  user_id: column.text,
+  business_id: column.text,
   role: column.text,
   active: column.integer,
+  created_at: column.text,
 })
 
 const exchange_rates = new Table({
@@ -37,6 +42,7 @@ const products = new Table({
   current_stock: column.real,
   min_stock: column.real,
   active: column.integer,
+  barcode: column.text,
 })
 
 const shifts = new Table({
@@ -73,6 +79,11 @@ const sales = new Table({
   total_mlc: column.real,
   total_usd: column.real,
   created_at: column.text,
+  // Payment methods breakdown
+  paid_cup: column.real,
+  paid_usd: column.real,
+  paid_mlc: column.real,
+  paid_transfer: column.real,
 })
 
 const sale_items = new Table({
@@ -85,13 +96,25 @@ const sale_items = new Table({
   subtotal: column.real,
 })
 
+const stock_movements = new Table({
+  business_id: column.text,
+  product_id: column.text,
+  type: column.text,
+  quantity: column.real,
+  note: column.text,
+  user_id: column.text,
+  created_at: column.text,
+})
+
 export const AppSchema = new Schema({
   businesses,
   users,
+  user_businesses,
   exchange_rates,
   products,
   shifts,
   cuadre_items,
   sales,
   sale_items,
+  stock_movements,
 })

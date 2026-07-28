@@ -13,10 +13,19 @@ export interface Business {
 
 export interface AppUser {
   id: string
-  business_id: string
+  business_id: string  // active business (from user_businesses)
   name: string
+  role: UserRole       // role in the active business
+  active: boolean
+}
+
+export interface UserBusiness {
+  id: string
+  user_id: string
+  business_id: string
   role: UserRole
   active: boolean
+  created_at: string
 }
 
 export interface ExchangeRate {
@@ -40,6 +49,7 @@ export interface Product {
   current_stock: number
   min_stock: number
   active: boolean
+  barcode?: string
 }
 
 export interface Shift {
@@ -78,6 +88,17 @@ export interface Sale {
   total_cup: number
   total_mlc: number
   total_usd: number
+  created_at: string
+}
+
+export interface StockMovement {
+  id: string
+  business_id: string
+  product_id: string
+  type: 'entrada' | 'salida'
+  quantity: number
+  note: string | null
+  user_id: string
   created_at: string
 }
 
